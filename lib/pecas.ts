@@ -28,13 +28,13 @@ export async function listarPecas(): Promise<PecaLista[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('pecas')
-    .select('id, sku, part_number, descricao, anexos:pecas_anexos(tipo, path)')
+    .select('id, sku, part_number, descricao, anexos:pecas_anexos(tipo, path, created_at)')
     .order('created_at', { ascending: false })
   if (error) throw error
 
   return (data ?? []).map((p) => {
-    const anexos = (p.anexos ?? []) as { tipo: string; path: string }[]
-    const fotos = anexos.filter((a) => a.tipo === 'foto')
+    const anexos = (p.anexos ?? []) as { tipo: string; path: string; created_at: string }[]
+    const fotos = anexos.filter((a) => a.tipo === 'foto').sort((a, b) => a.created_at.localeCompare(b.created_at))
     const docs = anexos.filter((a) => a.tipo === 'documento')
     const capa = fotos[0]
     const capaUrl = capa
@@ -66,17 +66,21 @@ export async function buscarPeca(id: string): Promise<PecaDetalheData | null> {
 
   const fotos: AnexoComUrl[] = anexos
     .filter((a) => a.tipo === 'foto')
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
     .map((a) => ({
       ...a,
       url: supabase.storage.from(BUCKET_FOTOS).getPublicUrl(a.path).data.publicUrl,
     }))
 
   const documentos: AnexoComUrl[] = []
-  for (const a of anexos.filter((x) => x.tipo === 'documento')) {
-    const { data: signed } = await supabase
+  for (const a of anexos.filter((x) => x.tipo === 'documento').sort((a, b) => a.created_at.localeCompare(b.created_at))) {
+    const { data: signed, error: erroAssinatura } = await supabase
       .storage
       .from(BUCKET_DOCS)
       .createSignedUrl(a.path, 3600)
+    if (erroAssinatura) {
+      console.error('Falha ao assinar URL do documento:', a.path, erroAssinatura.message)
+    }
     documentos.push({ ...a, url: signed?.signedUrl ?? '#' })
   }
 
