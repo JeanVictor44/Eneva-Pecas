@@ -6,7 +6,6 @@ import { toast } from 'sonner'
 import type { PecaDetalheData } from '@/lib/pecas'
 import { Button } from '@/components/ui/button'
 import {
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -45,21 +44,32 @@ export function PecaDetalhe({
   return (
     <>
       <DialogHeader>
-        <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
-          <div className="space-y-0.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              SKU
-            </p>
-            <DialogTitle className="font-mono text-lg text-primary">{peca.sku}</DialogTitle>
-          </div>
-          <div className="space-y-0.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Part number (fabricante)
-            </p>
-            <DialogDescription className="font-mono text-sm text-foreground">
-              {peca.part_number}
-            </DialogDescription>
-          </div>
+        <DialogTitle className="sr-only">
+          {peca.referencias[0]?.sku ?? 'Detalhe da peça'}
+        </DialogTitle>
+        <div className="space-y-3">
+          {peca.referencias.map((r, i) => (
+            <div key={i} className="flex flex-wrap items-start gap-x-8 gap-y-2">
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Fabricante
+                </p>
+                <p className="text-sm font-medium text-foreground">{r.fabricante}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  SKU
+                </p>
+                <p className="font-mono text-lg text-primary">{r.sku}</p>
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Part number
+                </p>
+                <p className="font-mono text-sm text-foreground">{r.part_number}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </DialogHeader>
 

@@ -19,7 +19,7 @@ export function PecaCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={peca.capaUrl}
-            alt={peca.sku}
+            alt={peca.referencias[0]?.sku ?? peca.descricao}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           />
         ) : (
@@ -30,21 +30,20 @@ export function PecaCard({
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">
-        <div className="flex items-baseline gap-2">
-          <span className="w-24 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            SKU
-          </span>
-          <span className="min-w-0 flex-1 truncate font-mono text-sm font-semibold text-primary">
-            {peca.sku}
-          </span>
-        </div>
-        <div className="flex items-baseline gap-2">
-          <span className="w-24 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Part number
-          </span>
-          <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground/70">
-            {peca.part_number}
-          </span>
+        <div className="space-y-1">
+          {peca.referencias.map((r, i) => (
+            <div key={i} className="flex items-baseline gap-2 text-xs">
+              <span className="min-w-0 max-w-[40%] shrink-0 truncate font-medium text-foreground/70">
+                {r.fabricante}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-mono font-semibold text-primary">
+                {r.sku}
+              </span>
+              <span className="min-w-0 max-w-[40%] shrink-0 truncate font-mono text-foreground/60">
+                {r.part_number}
+              </span>
+            </div>
+          ))}
         </div>
         <p className="mt-1 line-clamp-2 text-sm text-foreground/80">{peca.descricao}</p>
 
