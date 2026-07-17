@@ -34,6 +34,39 @@ function trincasValidas(trincas: Trinca[]): boolean {
   )
 }
 
+async function resolverCategoria(
+  supabase: SupabaseClient,
+  nomeBruto: string,
+): Promise<{ id: string | null; erro: string | null }> {
+  const nome = nomeBruto.trim()
+  if (!nome) return { id: null, erro: null }
+
+  // 1) Busca case-insensitive por categoria existente.
+  const { data: existente, error: erroBusca } = await supabase
+    .from('categorias')
+    .select('id')
+    .ilike('nome', nome)
+    .maybeSingle()
+  if (erroBusca) return { id: null, erro: mapErro(erroBusca) }
+  if (existente) return { id: existente.id, erro: null }
+
+  // 2) Não existe: cria. Em corrida (23505 no índice lower(nome)), re-seleciona.
+  const { data: nova, error: erroInsert } = await supabase
+    .from('categorias')
+    .insert({ nome })
+    .select('id')
+    .single()
+  if (!erroInsert) return { id: nova.id, erro: null }
+
+  const { data: reencontrada } = await supabase
+    .from('categorias')
+    .select('id')
+    .ilike('nome', nome)
+    .maybeSingle()
+  if (reencontrada) return { id: reencontrada.id, erro: null }
+  return { id: null, erro: mapErro(erroInsert) }
+}
+
 async function enviarAnexos(
   supabase: SupabaseClient,
   pecaId: string,
@@ -109,9 +142,12 @@ export async function criarPeca(
   }
 
   const supabase = await createClient()
+  const cat = await resolverCategoria(supabase, String(formData.get('categoria') ?? ''))
+  if (cat.erro) return { erro: cat.erro, ok: false }
+
   const { data: peca, error } = await supabase
     .from('pecas')
-    .insert({ descricao })
+    .insert({ descricao, categoria_id: cat.id })
     .select('id')
     .single()
   if (error) return { erro: mapErro(error), ok: false }
@@ -159,10 +195,12 @@ export async function atualizarPeca(
   }
 
   const supabase = await createClient()
+  const cat = await resolverCategoria(supabase, String(formData.get('categoria') ?? ''))
+  if (cat.erro) return { erro: cat.erro, ok: false }
 
   const { error: erroUpdate } = await supabase
     .from('pecas')
-    .update({ descricao })
+    .update({ descricao, categoria_id: cat.id })
     .eq('id', id)
   if (erroUpdate) return { erro: mapErro(erroUpdate), ok: false }
 
