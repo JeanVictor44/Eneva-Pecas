@@ -57,10 +57,17 @@ export function PecasView({
     return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome))
   }, [pecas])
 
+  // Se a categoria selecionada não está mais presente (ex.: última peça dela foi
+  // editada/excluída), ignora o filtro para não travar a listagem num beco sem saída.
+  const categoriaFiltro =
+    categoriaSel && categoriasPresentes.some((c) => c.id === categoriaSel)
+      ? categoriaSel
+      : null
+
   const pecasFiltradas = useMemo(() => {
     const q = normalizar(busca.trim())
     return pecas.filter((p) => {
-      if (categoriaSel && p.categoria?.id !== categoriaSel) return false
+      if (categoriaFiltro && p.categoria?.id !== categoriaFiltro) return false
       if (!q) return true
       return (
         normalizar(p.descricao).includes(q) ||
@@ -73,7 +80,7 @@ export function PecasView({
         )
       )
     })
-  }, [pecas, busca, categoriaSel])
+  }, [pecas, busca, categoriaFiltro])
 
   function abrirDetalhe(id: string) {
     const req = ++reqRef.current
@@ -111,7 +118,7 @@ export function PecasView({
           <p className="mt-1 text-sm text-muted-foreground">
             {pecas.length === 0
               ? 'Nenhuma peça cadastrada.'
-              : busca.trim() || categoriaSel
+              : busca.trim() || categoriaFiltro
                 ? `${pecasFiltradas.length} de ${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}.`
                 : `${pecas.length} ${pecas.length === 1 ? 'peça cadastrada' : 'peças cadastradas'}.`}
           </p>
@@ -147,7 +154,7 @@ export function PecasView({
                 onClick={() => setCategoriaSel(null)}
                 className={cn(
                   'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                  categoriaSel === null
+                  categoriaFiltro === null
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border text-foreground hover:bg-muted',
                 )}
@@ -161,7 +168,7 @@ export function PecasView({
                   onClick={() => setCategoriaSel(c.id)}
                   className={cn(
                     'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                    categoriaSel === c.id
+                    categoriaFiltro === c.id
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border text-foreground hover:bg-muted',
                   )}
