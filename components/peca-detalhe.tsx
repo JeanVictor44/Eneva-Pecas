@@ -45,8 +45,22 @@ export function PecaDetalhe({
   return (
     <>
       <DialogHeader>
-        <DialogTitle className="font-mono text-lg text-primary">{peca.sku}</DialogTitle>
-        <DialogDescription className="font-mono">{peca.part_number}</DialogDescription>
+        <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
+          <div className="space-y-0.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              SKU
+            </p>
+            <DialogTitle className="font-mono text-lg text-primary">{peca.sku}</DialogTitle>
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Part number (fabricante)
+            </p>
+            <DialogDescription className="font-mono text-sm text-foreground">
+              {peca.part_number}
+            </DialogDescription>
+          </div>
+        </div>
       </DialogHeader>
 
       <p className="text-sm text-foreground/80">{peca.descricao}</p>

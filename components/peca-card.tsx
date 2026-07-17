@@ -30,8 +30,22 @@ export function PecaCard({
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">
-        <p className="font-mono text-sm font-semibold text-primary">{peca.sku}</p>
-        <p className="font-mono text-xs text-muted-foreground">{peca.part_number}</p>
+        <div className="flex items-baseline gap-2">
+          <span className="w-24 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            SKU
+          </span>
+          <span className="min-w-0 flex-1 truncate font-mono text-sm font-semibold text-primary">
+            {peca.sku}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className="w-24 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Part number
+          </span>
+          <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground/70">
+            {peca.part_number}
+          </span>
+        </div>
         <p className="mt-1 line-clamp-2 text-sm text-foreground/80">{peca.descricao}</p>
 
         <div className="mt-auto flex items-center gap-4 pt-3 text-xs text-muted-foreground">

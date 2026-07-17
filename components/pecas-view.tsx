@@ -1,9 +1,9 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, PackagePlus, Plus } from 'lucide-react'
+import { Loader2, PackagePlus, Plus, Search, SearchX } from 'lucide-react'
 import {
   criarPeca,
   atualizarPeca,
@@ -12,6 +12,7 @@ import {
 } from '@/app/pecas/actions'
 import type { PecaLista, PecaDetalheData } from '@/lib/pecas'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -25,12 +26,32 @@ import { PecaDetalhe } from './peca-detalhe'
 
 type Modo = 'nova' | 'detalhe' | 'editar' | null
 
+// Normaliza para busca insensível a maiúsculas e acentos.
+function normalizar(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+}
+
 export function PecasView({ pecas }: { pecas: PecaLista[] }) {
   const router = useRouter()
   const [modo, setModo] = useState<Modo>(null)
   const [pecaSel, setPecaSel] = useState<PecaDetalheData | null>(null)
   const [carregando, startTransition] = useTransition()
+  const [busca, setBusca] = useState('')
   const reqRef = useRef(0)
+
+  const pecasFiltradas = useMemo(() => {
+    const q = normalizar(busca.trim())
+    if (!q) return pecas
+    return pecas.filter(
+      (p) =>
+        normalizar(p.sku).includes(q) ||
+        normalizar(p.part_number).includes(q) ||
+        normalizar(p.descricao).includes(q),
+    )
+  }, [pecas, busca])
 
   function abrirDetalhe(id: string) {
     const req = ++reqRef.current
@@ -68,7 +89,9 @@ export function PecasView({ pecas }: { pecas: PecaLista[] }) {
           <p className="mt-1 text-sm text-muted-foreground">
             {pecas.length === 0
               ? 'Nenhuma peça cadastrada.'
-              : `${pecas.length} ${pecas.length === 1 ? 'peça cadastrada' : 'peças cadastradas'}.`}
+              : busca.trim()
+                ? `${pecasFiltradas.length} de ${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}.`
+                : `${pecas.length} ${pecas.length === 1 ? 'peça cadastrada' : 'peças cadastradas'}.`}
           </p>
         </div>
         <Button size="lg" onClick={() => setModo('nova')}>
@@ -94,11 +117,35 @@ export function PecasView({ pecas }: { pecas: PecaLista[] }) {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {pecas.map((p) => (
-            <PecaCard key={p.id} peca={p} onClick={() => abrirDetalhe(p.id)} />
-          ))}
-        </div>
+        <>
+          <div className="relative mb-6">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por SKU, part number ou descrição…"
+              aria-label="Buscar peças"
+              className="pl-9"
+            />
+          </div>
+
+          {pecasFiltradas.length === 0 ? (
+            <div className="grid place-items-center gap-3 rounded-xl border border-dashed border-border bg-muted/30 px-6 py-16 text-center">
+              <div className="grid size-12 place-items-center rounded-xl bg-muted text-muted-foreground">
+                <SearchX className="size-6" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Nenhuma peça encontrada para “{busca}”.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {pecasFiltradas.map((p) => (
+                <PecaCard key={p.id} peca={p} onClick={() => abrirDetalhe(p.id)} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* Nova peça */}
