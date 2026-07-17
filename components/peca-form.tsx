@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from 'react'
 import { FileText, ImagePlus, Paperclip, Plus, X } from 'lucide-react'
 import type { EstadoPeca } from '@/app/pecas/actions'
 import type { PecaDetalheData } from '@/lib/pecas'
-import type { Trinca } from '@/lib/tipos'
+import type { Trinca, Categoria } from '@/lib/tipos'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,11 +16,13 @@ type AcaoForm = (state: EstadoPeca, formData: FormData) => Promise<EstadoPeca>
 export function PecaForm({
   action,
   peca,
+  categorias,
   onSuccess,
   submitLabel = 'Salvar',
 }: {
   action: AcaoForm
   peca?: PecaDetalheData
+  categorias: Categoria[]
   onSuccess: () => void
   submitLabel?: string
 }) {
@@ -71,6 +73,23 @@ export function PecaForm({
           {state.erro}
         </p>
       )}
+
+      <div className="space-y-1.5">
+        <Label htmlFor="categoria">Categoria</Label>
+        <Input
+          id="categoria"
+          name="categoria"
+          list="categorias-list"
+          defaultValue={peca?.categoria?.nome ?? ''}
+          placeholder="Selecione ou crie…"
+          autoComplete="off"
+        />
+        <datalist id="categorias-list">
+          {categorias.map((c) => (
+            <option key={c.id} value={c.nome} />
+          ))}
+        </datalist>
+      </div>
 
       <div className="space-y-3">
         <Label>Referências (fabricante · SKU · part number)</Label>

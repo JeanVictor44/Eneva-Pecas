@@ -11,6 +11,7 @@ import {
   carregarPeca,
 } from '@/app/pecas/actions'
 import type { PecaLista, PecaDetalheData } from '@/lib/pecas'
+import type { Categoria } from '@/lib/tipos'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -34,7 +35,13 @@ function normalizar(texto: string): string {
     .toLowerCase()
 }
 
-export function PecasView({ pecas }: { pecas: PecaLista[] }) {
+export function PecasView({
+  pecas,
+  categorias,
+}: {
+  pecas: PecaLista[]
+  categorias: Categoria[]
+}) {
   const router = useRouter()
   const [modo, setModo] = useState<Modo>(null)
   const [pecaSel, setPecaSel] = useState<PecaDetalheData | null>(null)
@@ -163,6 +170,7 @@ export function PecasView({ pecas }: { pecas: PecaLista[] }) {
           </DialogHeader>
           <PecaForm
             action={criarPeca}
+            categorias={categorias}
             onSuccess={() => aoSucesso('Peça cadastrada.')}
             submitLabel="Cadastrar"
           />
@@ -208,6 +216,7 @@ export function PecasView({ pecas }: { pecas: PecaLista[] }) {
             <PecaForm
               action={atualizarPeca.bind(null, pecaSel.id)}
               peca={pecaSel}
+              categorias={categorias}
               onSuccess={() => aoSucesso('Alterações salvas.')}
               submitLabel="Salvar"
             />
