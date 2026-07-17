@@ -25,3 +25,8 @@ export type Referencia = Trinca & {
   ordem: number
   created_at: string
 }
+
+export type Categoria = {
+  id: string
+  nome: string
+}

@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { BUCKET_FOTOS, BUCKET_DOCS } from '@/lib/storage'
-import type { Anexo, Trinca } from '@/lib/tipos'
+import type { Anexo, Trinca, Categoria } from '@/lib/tipos'
 
 export type PecaLista = {
   id: string
   descricao: string
   referencias: Trinca[]
+  categoria: Categoria | null
   capaUrl: string | null
   qtdFotos: number
   qtdDocs: number
@@ -17,6 +18,7 @@ export type PecaDetalheData = {
   id: string
   descricao: string
   referencias: Trinca[]
+  categoria: Categoria | null
   created_at: string
   fotos: AnexoComUrl[]
   documentos: AnexoComUrl[]
@@ -27,7 +29,7 @@ export async function listarPecas(): Promise<PecaLista[]> {
   const { data, error } = await supabase
     .from('pecas')
     .select(
-      'id, descricao, referencias:pecas_referencias(sku, part_number, fabricante, ordem), anexos:pecas_anexos(tipo, path, created_at)',
+      'id, descricao, categoria:categorias(id, nome), referencias:pecas_referencias(sku, part_number, fabricante, ordem), anexos:pecas_anexos(tipo, path, created_at)',
     )
     .order('created_at', { ascending: false })
   if (error) throw error
@@ -49,6 +51,11 @@ export async function listarPecas(): Promise<PecaLista[]> {
       id: p.id,
       descricao: p.descricao,
       referencias,
+      categoria: (
+        Array.isArray(p.categoria)
+          ? (p.categoria[0] ?? null)
+          : (p.categoria ?? null)
+      ) as Categoria | null,
       capaUrl,
       qtdFotos: fotos.length,
       qtdDocs: docs.length,
@@ -61,7 +68,7 @@ export async function buscarPeca(id: string): Promise<PecaDetalheData | null> {
   const { data, error } = await supabase
     .from('pecas')
     .select(
-      'id, descricao, created_at, referencias:pecas_referencias(sku, part_number, fabricante, ordem), anexos:pecas_anexos(*)',
+      'id, descricao, created_at, categoria:categorias(id, nome), referencias:pecas_referencias(sku, part_number, fabricante, ordem), anexos:pecas_anexos(*)',
     )
     .eq('id', id)
     .maybeSingle()
@@ -98,8 +105,23 @@ export async function buscarPeca(id: string): Promise<PecaDetalheData | null> {
     id: data.id,
     descricao: data.descricao,
     referencias,
+    categoria: (
+      Array.isArray(data.categoria)
+        ? (data.categoria[0] ?? null)
+        : (data.categoria ?? null)
+    ) as Categoria | null,
     created_at: data.created_at,
     fotos,
     documentos,
   }
+}
+
+export async function listarCategorias(): Promise<Categoria[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('categorias')
+    .select('id, nome')
+    .order('nome', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as Categoria[]
 }
