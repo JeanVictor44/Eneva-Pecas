@@ -1,12 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import type { AnexoComUrl } from '@/lib/pecas'
 
 export function GaleriaFotos({ fotos }: { fotos: AnexoComUrl[] }) {
   const [aberto, setAberto] = useState<number | null>(null)
+
+  // Fecha o lightbox no ESC — em fase de captura, para não deixar o dialog
+  // de detalhe (que também escuta ESC) fechar a tela inteira junto.
+  useEffect(() => {
+    if (aberto === null) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        setAberto(null)
+      }
+    }
+    document.addEventListener('keydown', onKey, true)
+    return () => document.removeEventListener('keydown', onKey, true)
+  }, [aberto])
 
   if (fotos.length === 0) {
     return <p className="text-sm text-muted-foreground">Sem fotos.</p>
