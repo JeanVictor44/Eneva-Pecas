@@ -21,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 import { PecaCard } from './peca-card'
 import { PecaForm } from './peca-form'
 import { PecaDetalhe } from './peca-detalhe'
@@ -48,21 +49,31 @@ export function PecasView({
   const [carregando, startTransition] = useTransition()
   const [busca, setBusca] = useState('')
   const reqRef = useRef(0)
+  const [categoriaSel, setCategoriaSel] = useState<string | null>(null)
+
+  const categoriasPresentes = useMemo(() => {
+    const mapa = new Map<string, Categoria>()
+    for (const p of pecas) if (p.categoria) mapa.set(p.categoria.id, p.categoria)
+    return [...mapa.values()].sort((a, b) => a.nome.localeCompare(b.nome))
+  }, [pecas])
 
   const pecasFiltradas = useMemo(() => {
     const q = normalizar(busca.trim())
-    if (!q) return pecas
-    return pecas.filter(
-      (p) =>
+    return pecas.filter((p) => {
+      if (categoriaSel && p.categoria?.id !== categoriaSel) return false
+      if (!q) return true
+      return (
         normalizar(p.descricao).includes(q) ||
+        (p.categoria ? normalizar(p.categoria.nome).includes(q) : false) ||
         p.referencias.some(
           (r) =>
             normalizar(r.sku).includes(q) ||
             normalizar(r.part_number).includes(q) ||
             normalizar(r.fabricante).includes(q),
-        ),
-    )
-  }, [pecas, busca])
+        )
+      )
+    })
+  }, [pecas, busca, categoriaSel])
 
   function abrirDetalhe(id: string) {
     const req = ++reqRef.current
@@ -100,7 +111,7 @@ export function PecasView({
           <p className="mt-1 text-sm text-muted-foreground">
             {pecas.length === 0
               ? 'Nenhuma peça cadastrada.'
-              : busca.trim()
+              : busca.trim() || categoriaSel
                 ? `${pecasFiltradas.length} de ${pecas.length} ${pecas.length === 1 ? 'peça' : 'peças'}.`
                 : `${pecas.length} ${pecas.length === 1 ? 'peça cadastrada' : 'peças cadastradas'}.`}
           </p>
@@ -129,6 +140,37 @@ export function PecasView({
         </div>
       ) : (
         <>
+          {categoriasPresentes.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setCategoriaSel(null)}
+                className={cn(
+                  'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  categoriaSel === null
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border text-foreground hover:bg-muted',
+                )}
+              >
+                Todas
+              </button>
+              {categoriasPresentes.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCategoriaSel(c.id)}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    categoriaSel === c.id
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border text-foreground hover:bg-muted',
+                  )}
+                >
+                  {c.nome}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="relative mb-6">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -146,7 +188,9 @@ export function PecasView({
                 <SearchX className="size-6" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Nenhuma peça encontrada para “{busca}”.
+                {busca.trim()
+                  ? `Nenhuma peça encontrada para “${busca}”.`
+                  : 'Nenhuma peça encontrada com esse filtro.'}
               </p>
             </div>
           ) : (
