@@ -1,12 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { BUCKET_FOTOS, BUCKET_DOCS } from '@/lib/storage'
-import type { Anexo } from '@/lib/tipos'
+import type { Anexo, Trinca } from '@/lib/tipos'
 
 export type PecaLista = {
   id: string
-  sku: string
-  part_number: string
   descricao: string
+  referencias: Trinca[]
   capaUrl: string | null
   qtdFotos: number
   qtdDocs: number
@@ -16,9 +15,8 @@ export type AnexoComUrl = Anexo & { url: string }
 
 export type PecaDetalheData = {
   id: string
-  sku: string
-  part_number: string
   descricao: string
+  referencias: Trinca[]
   created_at: string
   fotos: AnexoComUrl[]
   documentos: AnexoComUrl[]
@@ -28,7 +26,9 @@ export async function listarPecas(): Promise<PecaLista[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('pecas')
-    .select('id, sku, part_number, descricao, anexos:pecas_anexos(tipo, path, created_at)')
+    .select(
+      'id, descricao, referencias:pecas_referencias(sku, part_number, fabricante, ordem), anexos:pecas_anexos(tipo, path, created_at)',
+    )
     .order('created_at', { ascending: false })
   if (error) throw error
 
@@ -40,11 +40,15 @@ export async function listarPecas(): Promise<PecaLista[]> {
     const capaUrl = capa
       ? supabase.storage.from(BUCKET_FOTOS).getPublicUrl(capa.path).data.publicUrl
       : null
+
+    const referencias = ((p.referencias ?? []) as (Trinca & { ordem: number })[])
+      .sort((a, b) => a.ordem - b.ordem)
+      .map(({ sku, part_number, fabricante }) => ({ sku, part_number, fabricante }))
+
     return {
       id: p.id,
-      sku: p.sku,
-      part_number: p.part_number,
       descricao: p.descricao,
+      referencias,
       capaUrl,
       qtdFotos: fotos.length,
       qtdDocs: docs.length,
@@ -56,7 +60,9 @@ export async function buscarPeca(id: string): Promise<PecaDetalheData | null> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('pecas')
-    .select('id, sku, part_number, descricao, created_at, anexos:pecas_anexos(*)')
+    .select(
+      'id, descricao, created_at, referencias:pecas_referencias(sku, part_number, fabricante, ordem), anexos:pecas_anexos(*)',
+    )
     .eq('id', id)
     .maybeSingle()
   if (error) throw error
@@ -84,11 +90,14 @@ export async function buscarPeca(id: string): Promise<PecaDetalheData | null> {
     documentos.push({ ...a, url: signed?.signedUrl ?? '#' })
   }
 
+  const referencias = ((data.referencias ?? []) as (Trinca & { ordem: number })[])
+    .sort((a, b) => a.ordem - b.ordem)
+    .map(({ sku, part_number, fabricante }) => ({ sku, part_number, fabricante }))
+
   return {
     id: data.id,
-    sku: data.sku,
-    part_number: data.part_number,
     descricao: data.descricao,
+    referencias,
     created_at: data.created_at,
     fotos,
     documentos,
