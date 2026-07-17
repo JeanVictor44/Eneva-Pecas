@@ -1,5 +1,6 @@
 import { ImageIcon, FileText, ImageOff } from 'lucide-react'
 import type { PecaLista } from '@/lib/pecas'
+import { Badge } from '@/components/ui/badge'
 
 export function PecaCard({
   peca,
@@ -30,6 +31,11 @@ export function PecaCard({
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-4">
+        {peca.categoria && (
+          <Badge variant="secondary" className="mb-1">
+            {peca.categoria.nome}
+          </Badge>
+        )}
         <div className="space-y-1">
           {peca.referencias.map((r, i) => (
             <div key={i} className="flex items-baseline gap-2 text-xs">

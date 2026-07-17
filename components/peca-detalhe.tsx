@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Download, FileText, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { PecaDetalheData } from '@/lib/pecas'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   DialogFooter,
@@ -47,6 +48,11 @@ export function PecaDetalhe({
         <DialogTitle className="sr-only">
           {peca.referencias[0]?.sku ?? 'Detalhe da peça'}
         </DialogTitle>
+        {peca.categoria && (
+          <Badge variant="secondary" className="mb-1 w-fit">
+            {peca.categoria.nome}
+          </Badge>
+        )}
         <div className="space-y-3">
           {peca.referencias.map((r, i) => (
             <div key={i} className="flex flex-wrap items-start gap-x-8 gap-y-2">
