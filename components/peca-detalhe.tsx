@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Download, FileText, Pencil, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { PecaDetalheData } from '@/lib/pecas'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,6 +35,8 @@ export function PecaDetalhe({
     setExcluindo(true)
     try {
       await onExcluir()
+    } catch {
+      toast.error('Não foi possível excluir a peça.')
     } finally {
       setExcluindo(false)
     }

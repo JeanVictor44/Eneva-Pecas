@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Loader2, PackagePlus, Plus } from 'lucide-react'
@@ -30,13 +30,15 @@ export function PecasView({ pecas }: { pecas: PecaLista[] }) {
   const [modo, setModo] = useState<Modo>(null)
   const [pecaSel, setPecaSel] = useState<PecaDetalheData | null>(null)
   const [carregando, startTransition] = useTransition()
+  const reqRef = useRef(0)
 
   function abrirDetalhe(id: string) {
+    const req = ++reqRef.current
     setPecaSel(null)
     setModo('detalhe')
     startTransition(async () => {
       const data = await carregarPeca(id)
-      setPecaSel(data)
+      if (reqRef.current === req) setPecaSel(data)
     })
   }
 
