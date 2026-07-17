@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { BUCKET_FOTOS, BUCKET_DOCS } from '@/lib/storage'
 import { mapErro } from '@/lib/erros'
 import { buscarPeca, type PecaDetalheData } from '@/lib/pecas'
+import type { Trinca } from '@/lib/tipos'
 
 export type EstadoPeca = { erro: string | null; ok: boolean }
 
@@ -13,6 +14,24 @@ function arquivosDe(formData: FormData, campo: string): File[] {
   return formData
     .getAll(campo)
     .filter((f): f is File => f instanceof File && f.size > 0)
+}
+
+function trincasDe(formData: FormData): Trinca[] {
+  const skus = formData.getAll('trinca_sku').map((v) => String(v).trim())
+  const pns = formData.getAll('trinca_part_number').map((v) => String(v).trim())
+  const fabs = formData.getAll('trinca_fabricante').map((v) => String(v).trim())
+  return skus.map((sku, i) => ({
+    sku,
+    part_number: pns[i] ?? '',
+    fabricante: fabs[i] ?? '',
+  }))
+}
+
+function trincasValidas(trincas: Trinca[]): boolean {
+  return (
+    trincas.length > 0 &&
+    trincas.every((t) => t.sku && t.part_number && t.fabricante)
+  )
 }
 
 async function enviarAnexos(
@@ -81,21 +100,29 @@ export async function criarPeca(
   _prev: EstadoPeca,
   formData: FormData,
 ): Promise<EstadoPeca> {
-  const sku = String(formData.get('sku') ?? '').trim()
-  const part_number = String(formData.get('part_number') ?? '').trim()
   const descricao = String(formData.get('descricao') ?? '').trim()
+  const trincas = trincasDe(formData)
 
-  if (!sku || !part_number || !descricao) {
-    return { erro: 'Preencha SKU, part number e descrição.', ok: false }
+  if (!descricao) return { erro: 'Preencha a descrição.', ok: false }
+  if (!trincasValidas(trincas)) {
+    return { erro: 'Cada trinca precisa de SKU, part number e fabricante.', ok: false }
   }
 
   const supabase = await createClient()
   const { data: peca, error } = await supabase
     .from('pecas')
-    .insert({ sku, part_number, descricao })
+    .insert({ descricao })
     .select('id')
     .single()
   if (error) return { erro: mapErro(error), ok: false }
+
+  const { error: erroRef } = await supabase
+    .from('pecas_referencias')
+    .insert(trincas.map((t, i) => ({ peca_id: peca.id, ...t, ordem: i })))
+  if (erroRef) {
+    await supabase.from('pecas').delete().eq('id', peca.id)
+    return { erro: mapErro(erroRef), ok: false }
+  }
 
   const erroAnexo = await enviarAnexos(
     supabase,
@@ -104,8 +131,6 @@ export async function criarPeca(
     arquivosDe(formData, 'documentos'),
   )
   if (erroAnexo) {
-    // Desfaz a peça recém-criada para não deixar registro órfão nem
-    // bloquear um novo cadastro com o mesmo SKU (cascade limpa anexos).
     const { error: erroLimpeza } = await supabase.from('pecas').delete().eq('id', peca.id)
     if (erroLimpeza) {
       console.error('Falha ao remover peça órfã:', peca.id, erroLimpeza.message)
@@ -122,27 +147,37 @@ export async function atualizarPeca(
   _prev: EstadoPeca,
   formData: FormData,
 ): Promise<EstadoPeca> {
-  const sku = String(formData.get('sku') ?? '').trim()
-  const part_number = String(formData.get('part_number') ?? '').trim()
   const descricao = String(formData.get('descricao') ?? '').trim()
+  const trincas = trincasDe(formData)
 
-  if (!sku || !part_number || !descricao) {
-    return { erro: 'Preencha SKU, part number e descrição.', ok: false }
+  if (!descricao) return { erro: 'Preencha a descrição.', ok: false }
+  if (!trincasValidas(trincas)) {
+    return { erro: 'Cada trinca precisa de SKU, part number e fabricante.', ok: false }
   }
 
   const supabase = await createClient()
 
   const { error: erroUpdate } = await supabase
     .from('pecas')
-    .update({ sku, part_number, descricao })
+    .update({ descricao })
     .eq('id', id)
   if (erroUpdate) return { erro: mapErro(erroUpdate), ok: false }
 
-  // Remoção de anexos marcados
+  // Substitui as trincas (replace-all). Ver "Risco conhecido" no spec.
+  const { error: erroDel } = await supabase
+    .from('pecas_referencias')
+    .delete()
+    .eq('peca_id', id)
+  if (erroDel) return { erro: mapErro(erroDel), ok: false }
+
+  const { error: erroRef } = await supabase
+    .from('pecas_referencias')
+    .insert(trincas.map((t, i) => ({ peca_id: id, ...t, ordem: i })))
+  if (erroRef) return { erro: mapErro(erroRef), ok: false }
+
+  // Remoção de anexos marcados (bloco existente — manter como está)
   const removerIds = formData.getAll('remover').map((v) => String(v))
   if (removerIds.length) {
-    // Escopo por peca_id: só remove anexos que pertencem a ESTA peça,
-    // mesmo que ids de outras peças sejam enviados no formulário.
     const { data: aRem } = await supabase
       .from('pecas_anexos')
       .select('id, tipo, path')
@@ -156,7 +191,6 @@ export async function atualizarPeca(
     await supabase.from('pecas_anexos').delete().eq('peca_id', id).in('id', removerIds)
   }
 
-  // Novos anexos
   const erroAnexo = await enviarAnexos(
     supabase,
     id,
