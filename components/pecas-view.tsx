@@ -47,9 +47,13 @@ export function PecasView({ pecas }: { pecas: PecaLista[] }) {
     if (!q) return pecas
     return pecas.filter(
       (p) =>
-        normalizar(p.sku).includes(q) ||
-        normalizar(p.part_number).includes(q) ||
-        normalizar(p.descricao).includes(q),
+        normalizar(p.descricao).includes(q) ||
+        p.referencias.some(
+          (r) =>
+            normalizar(r.sku).includes(q) ||
+            normalizar(r.part_number).includes(q) ||
+            normalizar(r.fabricante).includes(q),
+        ),
     )
   }, [pecas, busca])
 
@@ -123,7 +127,7 @@ export function PecasView({ pecas }: { pecas: PecaLista[] }) {
             <Input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por SKU, part number ou descrição…"
+              placeholder="Buscar por SKU, part number, fabricante ou descrição…"
               aria-label="Buscar peças"
               className="pl-9"
             />
@@ -154,7 +158,7 @@ export function PecasView({ pecas }: { pecas: PecaLista[] }) {
           <DialogHeader>
             <DialogTitle>Nova peça</DialogTitle>
             <DialogDescription>
-              Cadastre uma peça com SKU, part number e anexos.
+              Cadastre uma peça com descrição, trincas (fabricante · SKU · part number) e anexos.
             </DialogDescription>
           </DialogHeader>
           <PecaForm
@@ -195,7 +199,9 @@ export function PecasView({ pecas }: { pecas: PecaLista[] }) {
           <DialogHeader>
             <DialogTitle>Editar peça</DialogTitle>
             {pecaSel && (
-              <DialogDescription className="font-mono">{pecaSel.sku}</DialogDescription>
+              <DialogDescription className="font-mono">
+                {pecaSel.referencias[0]?.sku}
+              </DialogDescription>
             )}
           </DialogHeader>
           {pecaSel && (
