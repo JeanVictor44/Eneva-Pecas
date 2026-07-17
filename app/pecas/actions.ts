@@ -116,3 +116,25 @@ export async function criarPeca(
   revalidatePath('/pecas')
   redirect('/pecas')
 }
+
+export async function excluirPeca(id: string, _formData?: FormData) {
+  const supabase = await createClient()
+
+  const { data: anexos } = await supabase
+    .from('pecas_anexos')
+    .select('tipo, path')
+    .eq('peca_id', id)
+
+  const fotos = (anexos ?? []).filter((a) => a.tipo === 'foto').map((a) => a.path)
+  const docs = (anexos ?? []).filter((a) => a.tipo === 'documento').map((a) => a.path)
+
+  if (fotos.length) await supabase.storage.from(BUCKET_FOTOS).remove(fotos)
+  if (docs.length) await supabase.storage.from(BUCKET_DOCS).remove(docs)
+
+  // Cascade remove as linhas de pecas_anexos
+  const { error } = await supabase.from('pecas').delete().eq('id', id)
+  if (error) console.error('Erro ao excluir peça:', error.message)
+
+  revalidatePath('/pecas')
+  redirect('/pecas')
+}
