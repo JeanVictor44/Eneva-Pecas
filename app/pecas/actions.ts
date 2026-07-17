@@ -26,14 +26,39 @@ async function enviarAnexos(
     ...documentos.map((file) => ({ bucket: BUCKET_DOCS, tipo: 'documento' as const, file })),
   ]
 
+  // Arquivos já enviados nesta chamada, para limpeza em caso de falha parcial
+  const enviados: { bucket: string; path: string }[] = []
+
+  async function limparEnviados() {
+    for (const { bucket, path } of enviados) {
+      const { error } = await supabase.storage.from(bucket).remove([path])
+      if (error) {
+        console.error('Falha ao limpar arquivo órfão:', bucket, path, error.message)
+      }
+    }
+    const paths = enviados.map((e) => e.path)
+    if (paths.length) {
+      const { error } = await supabase.from('pecas_anexos').delete().in('path', paths)
+      if (error) {
+        console.error('Falha ao limpar linhas de anexo órfãs:', error.message)
+      }
+    }
+  }
+
   for (const { bucket, tipo, file } of jobs) {
-    const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin'
+    const raw = file.name.includes('.') ? file.name.split('.').pop() : ''
+    const ext = raw || 'bin'
     const path = `pecas/${pecaId}/${crypto.randomUUID()}.${ext}`
 
     const up = await supabase.storage.from(bucket).upload(path, file, {
       contentType: file.type || undefined,
     })
-    if (up.error) return `Falha ao enviar ${tipo}: ${up.error.message}`
+    if (up.error) {
+      console.error('Falha no upload:', bucket, path, up.error.message)
+      await limparEnviados()
+      return `Falha ao enviar ${tipo}: ${up.error.message}`
+    }
+    enviados.push({ bucket, path })
 
     const ins = await supabase.from('pecas_anexos').insert({
       peca_id: pecaId,
@@ -43,7 +68,11 @@ async function enviarAnexos(
       mime_type: file.type || null,
       tamanho: file.size,
     })
-    if (ins.error) return `Falha ao registrar ${tipo}: ${ins.error.message}`
+    if (ins.error) {
+      console.error('Falha ao registrar anexo:', bucket, path, ins.error.message)
+      await limparEnviados()
+      return `Falha ao registrar ${tipo}: ${ins.error.message}`
+    }
   }
   return null
 }
@@ -74,7 +103,15 @@ export async function criarPeca(
     arquivosDe(formData, 'fotos'),
     arquivosDe(formData, 'documentos'),
   )
-  if (erroAnexo) return { erro: erroAnexo }
+  if (erroAnexo) {
+    // Desfaz a peça recém-criada para não deixar registro órfão nem
+    // bloquear um novo cadastro com o mesmo SKU (cascade limpa anexos).
+    const { error: erroLimpeza } = await supabase.from('pecas').delete().eq('id', peca.id)
+    if (erroLimpeza) {
+      console.error('Falha ao remover peça órfã:', peca.id, erroLimpeza.message)
+    }
+    return { erro: erroAnexo }
+  }
 
   revalidatePath('/pecas')
   redirect('/pecas')
