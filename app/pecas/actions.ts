@@ -41,11 +41,15 @@ async function resolverCategoria(
   const nome = nomeBruto.trim()
   if (!nome) return { id: null, erro: null }
 
+  // Escapa curingas do ILIKE (\ % _) para casar o nome literalmente, mantendo
+  // a busca case-insensitive.
+  const padrao = nome.replace(/[\\%_]/g, '\\$&')
+
   // 1) Busca case-insensitive por categoria existente.
   const { data: existente, error: erroBusca } = await supabase
     .from('categorias')
     .select('id')
-    .ilike('nome', nome)
+    .ilike('nome', padrao)
     .maybeSingle()
   if (erroBusca) return { id: null, erro: mapErro(erroBusca) }
   if (existente) return { id: existente.id, erro: null }
@@ -61,7 +65,7 @@ async function resolverCategoria(
   const { data: reencontrada } = await supabase
     .from('categorias')
     .select('id')
-    .ilike('nome', nome)
+    .ilike('nome', padrao)
     .maybeSingle()
   if (reencontrada) return { id: reencontrada.id, erro: null }
   return { id: null, erro: mapErro(erroInsert) }
