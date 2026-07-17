@@ -1,11 +1,11 @@
-import Link from 'next/link'
-import { Wrench } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
-import { LogoutButton } from './logout-button'
+import Link from "next/link";
+import { Wrench } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { LogoutButton } from "./logout-button";
 
 export async function Header() {
-  const supabase = await createClient()
-  const { data } = await supabase.auth.getUser()
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur supports-backdrop-filter:bg-background/70">
@@ -18,7 +18,7 @@ export async function Header() {
             <span className="text-sm font-semibold tracking-tight text-foreground">
               Catálogo de Peças
             </span>
-            <span className="text-xs text-muted-foreground">Manutenção · Eneva</span>
+            <span className="text-xs text-muted-foreground">Manutenção</span>
           </span>
         </Link>
         <div className="flex items-center gap-3">
@@ -31,5 +31,5 @@ export async function Header() {
         </div>
       </div>
     </header>
-  )
+  );
 }
