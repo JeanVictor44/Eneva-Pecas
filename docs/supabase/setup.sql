@@ -83,14 +83,24 @@ create policy "docs_delete_auth" on storage.objects for delete to authenticated 
 -- MIGRAÇÃO (aplicar UMA vez em bancos que já tinham sku/part_number em pecas).
 -- Pré-requisito: a tabela pecas_referencias acima já foi criada.
 -- ============================================================
--- 1) Move os dados atuais para a primeira trinca de cada peça.
-insert into public.pecas_referencias (peca_id, sku, part_number, fabricante, ordem)
-select id, sku, part_number, 'Não informado', 0
-from public.pecas
-where not exists (
-  select 1 from public.pecas_referencias r where r.peca_id = pecas.id
-);
+-- Guardado para ser seguro tanto em banco NOVO (as colunas não existem: no-op)
+-- quanto em banco EXISTENTE (migra os dados e remove as colunas).
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'pecas' and column_name = 'sku'
+  ) then
+    -- 1) Move os dados atuais para a primeira trinca de cada peça.
+    insert into public.pecas_referencias (peca_id, sku, part_number, fabricante, ordem)
+    select id, sku, part_number, 'Não informado', 0
+    from public.pecas
+    where not exists (
+      select 1 from public.pecas_referencias r where r.peca_id = pecas.id
+    );
 
--- 2) Remove as colunas antigas de pecas.
-alter table public.pecas drop column if exists sku;
-alter table public.pecas drop column if exists part_number;
+    -- 2) Remove as colunas antigas de pecas.
+    alter table public.pecas drop column if exists sku;
+    alter table public.pecas drop column if exists part_number;
+  end if;
+end $$;

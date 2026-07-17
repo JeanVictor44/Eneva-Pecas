@@ -120,7 +120,10 @@ export async function criarPeca(
     .from('pecas_referencias')
     .insert(trincas.map((t, i) => ({ peca_id: peca.id, ...t, ordem: i })))
   if (erroRef) {
-    await supabase.from('pecas').delete().eq('id', peca.id)
+    const { error: erroLimpeza } = await supabase.from('pecas').delete().eq('id', peca.id)
+    if (erroLimpeza) {
+      console.error('Falha ao remover peça órfã:', peca.id, erroLimpeza.message)
+    }
     return { erro: mapErro(erroRef), ok: false }
   }
 
@@ -163,7 +166,14 @@ export async function atualizarPeca(
     .eq('id', id)
   if (erroUpdate) return { erro: mapErro(erroUpdate), ok: false }
 
-  // Substitui as trincas (replace-all). Ver "Risco conhecido" no spec.
+  // Substitui as trincas (replace-all). O delete+insert não é atômico (risco
+  // aceito no spec); por isso guardamos as trincas atuais e as restauramos se o
+  // insert falhar (ex.: SKU duplicado), para nunca deixar a peça sem identidade.
+  const { data: trincasAnteriores } = await supabase
+    .from('pecas_referencias')
+    .select('sku, part_number, fabricante, ordem')
+    .eq('peca_id', id)
+
   const { error: erroDel } = await supabase
     .from('pecas_referencias')
     .delete()
@@ -173,7 +183,22 @@ export async function atualizarPeca(
   const { error: erroRef } = await supabase
     .from('pecas_referencias')
     .insert(trincas.map((t, i) => ({ peca_id: id, ...t, ordem: i })))
-  if (erroRef) return { erro: mapErro(erroRef), ok: false }
+  if (erroRef) {
+    // Best-effort: recoloca as trincas anteriores para não perder a identidade da peça.
+    if (trincasAnteriores?.length) {
+      const { error: erroRestauro } = await supabase
+        .from('pecas_referencias')
+        .insert(trincasAnteriores.map((r) => ({ peca_id: id, ...r })))
+      if (erroRestauro) {
+        console.error(
+          'Falha ao restaurar trincas após erro no update:',
+          id,
+          erroRestauro.message,
+        )
+      }
+    }
+    return { erro: mapErro(erroRef), ok: false }
+  }
 
   // Remoção de anexos marcados (bloco existente — manter como está)
   const removerIds = formData.getAll('remover').map((v) => String(v))
