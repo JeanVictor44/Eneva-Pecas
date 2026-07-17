@@ -8,7 +8,7 @@ export default async function LoginPage() {
   if (data.user) redirect('/pecas')
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-steel-100 p-4 dark:bg-steel-900">
+    <main className="flex min-h-dvh items-center justify-center bg-linear-to-b from-brand-50 to-background p-4">
       <LoginForm />
     </main>
   )
