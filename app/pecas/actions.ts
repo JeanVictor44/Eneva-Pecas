@@ -117,6 +117,56 @@ export async function criarPeca(
   redirect('/pecas')
 }
 
+export async function atualizarPeca(
+  id: string,
+  _prev: EstadoPeca,
+  formData: FormData,
+): Promise<EstadoPeca> {
+  const sku = String(formData.get('sku') ?? '').trim()
+  const part_number = String(formData.get('part_number') ?? '').trim()
+  const descricao = String(formData.get('descricao') ?? '').trim()
+
+  if (!sku || !part_number || !descricao) {
+    return { erro: 'Preencha SKU, part number e descrição.' }
+  }
+
+  const supabase = await createClient()
+
+  const { error: erroUpdate } = await supabase
+    .from('pecas')
+    .update({ sku, part_number, descricao })
+    .eq('id', id)
+  if (erroUpdate) return { erro: mapErro(erroUpdate) }
+
+  // Remoção de anexos marcados
+  const removerIds = formData.getAll('remover').map((v) => String(v))
+  if (removerIds.length) {
+    const { data: aRem } = await supabase
+      .from('pecas_anexos')
+      .select('id, tipo, path')
+      .in('id', removerIds)
+
+    const fotos = (aRem ?? []).filter((a) => a.tipo === 'foto').map((a) => a.path)
+    const docs = (aRem ?? []).filter((a) => a.tipo === 'documento').map((a) => a.path)
+    if (fotos.length) await supabase.storage.from(BUCKET_FOTOS).remove(fotos)
+    if (docs.length) await supabase.storage.from(BUCKET_DOCS).remove(docs)
+    await supabase.from('pecas_anexos').delete().in('id', removerIds)
+  }
+
+  // Novos anexos
+  const erroAnexo = await enviarAnexos(
+    supabase,
+    id,
+    arquivosDe(formData, 'fotos'),
+    arquivosDe(formData, 'documentos'),
+  )
+  if (erroAnexo) return { erro: erroAnexo }
+
+  revalidatePath('/pecas')
+  revalidatePath(`/pecas/${id}`)
+  redirect(`/pecas/${id}`)
+}
+
 export async function excluirPeca(id: string, _formData?: FormData) {
   const supabase = await createClient()
 
