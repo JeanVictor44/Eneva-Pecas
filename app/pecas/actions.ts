@@ -41,9 +41,9 @@ async function resolverCategoria(
   const nome = nomeBruto.trim()
   if (!nome) return { id: null, erro: null }
 
-  // Escapa curingas do ILIKE (\ % _) para casar o nome literalmente, mantendo
-  // a busca case-insensitive.
-  const padrao = nome.replace(/[\\%_]/g, '\\$&')
+  // Escapa curingas do ILIKE (\ % _ *) para casar o nome literalmente, mantendo
+  // a busca case-insensitive. O PostgREST trata * como alias de %, então também entra.
+  const padrao = nome.replace(/[\\%_*]/g, '\\$&')
 
   // 1) Busca case-insensitive por categoria existente.
   const { data: existente, error: erroBusca } = await supabase
