@@ -1,40 +1,82 @@
-import Link from 'next/link'
+'use client'
+
+import { useState } from 'react'
+import { Download, FileText, Pencil, Trash2 } from 'lucide-react'
 import type { PecaDetalheData } from '@/lib/pecas'
+import { Button } from '@/components/ui/button'
+import {
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { GaleriaFotos } from './galeria-fotos'
-import { BotaoExcluir } from './botao-excluir'
 
 function formatarTamanho(bytes: number | null): string {
-  if (!bytes) return ''
+  if (bytes === null || bytes === undefined) return ''
   const kb = bytes / 1024
   return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb / 1024).toFixed(1)} MB`
 }
 
-export function PecaDetalhe({ peca }: { peca: PecaDetalheData }) {
+export function PecaDetalhe({
+  peca,
+  onEditar,
+  onExcluir,
+}: {
+  peca: PecaDetalheData
+  onEditar: () => void
+  onExcluir: () => void | Promise<void>
+}) {
+  const [confirmando, setConfirmando] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
+
+  async function confirmarExclusao() {
+    setExcluindo(true)
+    try {
+      await onExcluir()
+    } finally {
+      setExcluindo(false)
+    }
+  }
+
   return (
-    <article className="space-y-6">
-      <div>
-        <p className="font-mono text-lg font-semibold text-brand-700">{peca.sku}</p>
-        <p className="font-mono text-sm text-steel-500">{peca.part_number}</p>
-        <p className="mt-2 text-steel-700 dark:text-steel-300">{peca.descricao}</p>
-      </div>
+    <>
+      <DialogHeader>
+        <DialogTitle className="font-mono text-lg text-primary">{peca.sku}</DialogTitle>
+        <DialogDescription className="font-mono">{peca.part_number}</DialogDescription>
+      </DialogHeader>
+
+      <p className="text-sm text-foreground/80">{peca.descricao}</p>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-steel-500">Fotos</h2>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Fotos
+        </h3>
         <GaleriaFotos fotos={peca.fotos} />
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-steel-500">Documentos</h2>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Documentos
+        </h3>
         {peca.documentos.length === 0 ? (
-          <p className="text-sm text-steel-400">Sem documentos.</p>
+          <p className="text-sm text-muted-foreground">Sem documentos.</p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-1.5">
             {peca.documentos.map((d) => (
               <li key={d.id}>
-                <a href={d.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-lg border border-steel-200 px-3 py-2 text-sm hover:bg-steel-50 dark:border-steel-700 dark:hover:bg-steel-800">
-                  <span>📄 {d.nome}</span>
-                  <span className="text-xs text-steel-400">{formatarTamanho(d.tamanho)}</span>
+                <a
+                  href={d.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:border-primary/40 hover:bg-muted"
+                >
+                  <FileText className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate">{d.nome}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatarTamanho(d.tamanho)}
+                  </span>
+                  <Download className="size-4 shrink-0 text-muted-foreground" />
                 </a>
               </li>
             ))}
@@ -42,13 +84,44 @@ export function PecaDetalhe({ peca }: { peca: PecaDetalheData }) {
         )}
       </section>
 
-      <div className="flex gap-3 border-t border-steel-200 pt-4 dark:border-steel-700">
-        <Link href={`/pecas/${peca.id}/editar`}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          Editar
-        </Link>
-        <BotaoExcluir id={peca.id} />
-      </div>
-    </article>
+      <DialogFooter className="sm:justify-between">
+        {confirmando ? (
+          <div className="flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center">
+            <span className="self-center text-sm text-muted-foreground">Confirmar exclusão?</span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setConfirmando(false)}
+                disabled={excluindo}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={confirmarExclusao}
+                disabled={excluindo}
+              >
+                <Trash2 />
+                {excluindo ? 'Excluindo…' : 'Sim, excluir'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button type="button" variant="destructive" onClick={() => setConfirmando(true)}>
+            <Trash2 />
+            Excluir
+          </Button>
+        )}
+
+        {!confirmando && (
+          <Button type="button" variant="default" size="lg" onClick={onEditar}>
+            <Pencil />
+            Editar
+          </Button>
+        )}
+      </DialogFooter>
+    </>
   )
 }

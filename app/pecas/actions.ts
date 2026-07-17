@@ -1,13 +1,13 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { BUCKET_FOTOS, BUCKET_DOCS } from '@/lib/storage'
 import { mapErro } from '@/lib/erros'
+import { buscarPeca, type PecaDetalheData } from '@/lib/pecas'
 
-export type EstadoPeca = { erro: string | null }
+export type EstadoPeca = { erro: string | null; ok: boolean }
 
 function arquivosDe(formData: FormData, campo: string): File[] {
   return formData
@@ -86,7 +86,7 @@ export async function criarPeca(
   const descricao = String(formData.get('descricao') ?? '').trim()
 
   if (!sku || !part_number || !descricao) {
-    return { erro: 'Preencha SKU, part number e descrição.' }
+    return { erro: 'Preencha SKU, part number e descrição.', ok: false }
   }
 
   const supabase = await createClient()
@@ -95,7 +95,7 @@ export async function criarPeca(
     .insert({ sku, part_number, descricao })
     .select('id')
     .single()
-  if (error) return { erro: mapErro(error) }
+  if (error) return { erro: mapErro(error), ok: false }
 
   const erroAnexo = await enviarAnexos(
     supabase,
@@ -110,11 +110,11 @@ export async function criarPeca(
     if (erroLimpeza) {
       console.error('Falha ao remover peça órfã:', peca.id, erroLimpeza.message)
     }
-    return { erro: erroAnexo }
+    return { erro: erroAnexo, ok: false }
   }
 
   revalidatePath('/pecas')
-  redirect('/pecas')
+  return { erro: null, ok: true }
 }
 
 export async function atualizarPeca(
@@ -127,7 +127,7 @@ export async function atualizarPeca(
   const descricao = String(formData.get('descricao') ?? '').trim()
 
   if (!sku || !part_number || !descricao) {
-    return { erro: 'Preencha SKU, part number e descrição.' }
+    return { erro: 'Preencha SKU, part number e descrição.', ok: false }
   }
 
   const supabase = await createClient()
@@ -136,7 +136,7 @@ export async function atualizarPeca(
     .from('pecas')
     .update({ sku, part_number, descricao })
     .eq('id', id)
-  if (erroUpdate) return { erro: mapErro(erroUpdate) }
+  if (erroUpdate) return { erro: mapErro(erroUpdate), ok: false }
 
   // Remoção de anexos marcados
   const removerIds = formData.getAll('remover').map((v) => String(v))
@@ -163,14 +163,13 @@ export async function atualizarPeca(
     arquivosDe(formData, 'fotos'),
     arquivosDe(formData, 'documentos'),
   )
-  if (erroAnexo) return { erro: erroAnexo }
+  if (erroAnexo) return { erro: erroAnexo, ok: false }
 
   revalidatePath('/pecas')
-  revalidatePath(`/pecas/${id}`)
-  redirect(`/pecas/${id}`)
+  return { erro: null, ok: true }
 }
 
-export async function excluirPeca(id: string, _formData?: FormData) {
+export async function excluirPeca(id: string): Promise<EstadoPeca> {
   const supabase = await createClient()
 
   const { data: anexos } = await supabase
@@ -178,16 +177,23 @@ export async function excluirPeca(id: string, _formData?: FormData) {
     .select('tipo, path')
     .eq('peca_id', id)
 
+  // Remove a peça primeiro (o cascade limpa as linhas de pecas_anexos);
+  // só então apaga os arquivos do Storage, evitando registro sem arquivos.
+  const { error } = await supabase.from('pecas').delete().eq('id', id)
+  if (error) {
+    console.error('Erro ao excluir peça:', error.message)
+    return { erro: mapErro(error), ok: false }
+  }
+
   const fotos = (anexos ?? []).filter((a) => a.tipo === 'foto').map((a) => a.path)
   const docs = (anexos ?? []).filter((a) => a.tipo === 'documento').map((a) => a.path)
-
   if (fotos.length) await supabase.storage.from(BUCKET_FOTOS).remove(fotos)
   if (docs.length) await supabase.storage.from(BUCKET_DOCS).remove(docs)
 
-  // Cascade remove as linhas de pecas_anexos
-  const { error } = await supabase.from('pecas').delete().eq('id', id)
-  if (error) console.error('Erro ao excluir peça:', error.message)
-
   revalidatePath('/pecas')
-  redirect('/pecas')
+  return { erro: null, ok: true }
+}
+
+export async function carregarPeca(id: string): Promise<PecaDetalheData | null> {
+  return buscarPeca(id)
 }

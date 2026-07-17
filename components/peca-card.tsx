@@ -1,31 +1,50 @@
-import Link from 'next/link'
+import { ImageIcon, FileText, ImageOff } from 'lucide-react'
 import type { PecaLista } from '@/lib/pecas'
 
-export function PecaCard({ peca }: { peca: PecaLista }) {
+export function PecaCard({
+  peca,
+  onClick,
+}: {
+  peca: PecaLista
+  onClick: () => void
+}) {
   return (
-    <Link
-      href={`/pecas/${peca.id}`}
-      className="group block overflow-hidden rounded-2xl border border-steel-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-steel-700 dark:bg-steel-800"
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex flex-col overflow-hidden rounded-xl bg-card text-left ring-1 ring-foreground/10 transition-all outline-none hover:-translate-y-0.5 hover:ring-primary/40 hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/50"
     >
-      <div className="aspect-[4/3] bg-steel-100 dark:bg-steel-700">
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {peca.capaUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={peca.capaUrl} alt={peca.sku} className="h-full w-full object-cover" />
+          <img
+            src={peca.capaUrl}
+            alt={peca.sku}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
         ) : (
-          <div className="grid h-full place-items-center text-steel-400">sem foto</div>
+          <div className="grid h-full place-items-center text-muted-foreground">
+            <ImageOff className="size-8" />
+          </div>
         )}
       </div>
-      <div className="p-4">
-        <p className="font-mono text-sm font-semibold text-brand-700">{peca.sku}</p>
-        <p className="font-mono text-xs text-steel-500">{peca.part_number}</p>
-        <p className="mt-1 line-clamp-2 text-sm text-steel-700 dark:text-steel-300">
-          {peca.descricao}
-        </p>
-        <div className="mt-3 flex gap-3 text-xs text-steel-500">
-          <span>📷 {peca.qtdFotos}</span>
-          <span>📄 {peca.qtdDocs}</span>
+
+      <div className="flex flex-1 flex-col gap-1 p-4">
+        <p className="font-mono text-sm font-semibold text-primary">{peca.sku}</p>
+        <p className="font-mono text-xs text-muted-foreground">{peca.part_number}</p>
+        <p className="mt-1 line-clamp-2 text-sm text-foreground/80">{peca.descricao}</p>
+
+        <div className="mt-auto flex items-center gap-4 pt-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <ImageIcon className="size-3.5" />
+            {peca.qtdFotos}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <FileText className="size-3.5" />
+            {peca.qtdDocs}
+          </span>
         </div>
       </div>
-    </Link>
+    </button>
   )
 }

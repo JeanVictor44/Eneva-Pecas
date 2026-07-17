@@ -1,16 +1,16 @@
 'use client'
 
+import { LogOut } from 'lucide-react'
 import { sair } from '@/app/login/actions'
+import { Button } from '@/components/ui/button'
 
 export function LogoutButton() {
   return (
     <form action={sair}>
-      <button
-        type="submit"
-        className="rounded-lg border border-steel-300 px-3 py-1.5 text-sm text-steel-700 transition hover:bg-steel-100 dark:border-steel-600 dark:text-steel-200 dark:hover:bg-steel-800"
-      >
+      <Button type="submit" variant="outline" size="sm">
+        <LogOut />
         Sair
-      </button>
+      </Button>
     </form>
   )
 }
