@@ -141,16 +141,19 @@ export async function atualizarPeca(
   // Remoção de anexos marcados
   const removerIds = formData.getAll('remover').map((v) => String(v))
   if (removerIds.length) {
+    // Escopo por peca_id: só remove anexos que pertencem a ESTA peça,
+    // mesmo que ids de outras peças sejam enviados no formulário.
     const { data: aRem } = await supabase
       .from('pecas_anexos')
       .select('id, tipo, path')
+      .eq('peca_id', id)
       .in('id', removerIds)
 
     const fotos = (aRem ?? []).filter((a) => a.tipo === 'foto').map((a) => a.path)
     const docs = (aRem ?? []).filter((a) => a.tipo === 'documento').map((a) => a.path)
     if (fotos.length) await supabase.storage.from(BUCKET_FOTOS).remove(fotos)
     if (docs.length) await supabase.storage.from(BUCKET_DOCS).remove(docs)
-    await supabase.from('pecas_anexos').delete().in('id', removerIds)
+    await supabase.from('pecas_anexos').delete().eq('peca_id', id).in('id', removerIds)
   }
 
   // Novos anexos
