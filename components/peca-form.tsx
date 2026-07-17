@@ -1,9 +1,10 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
-import { FileText, ImagePlus, Paperclip, X } from 'lucide-react'
+import { FileText, ImagePlus, Paperclip, Plus, X } from 'lucide-react'
 import type { EstadoPeca } from '@/app/pecas/actions'
 import type { PecaDetalheData } from '@/lib/pecas'
+import type { Trinca } from '@/lib/tipos'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,6 +31,21 @@ export function PecaForm({
   const [previews, setPreviews] = useState<string[]>([])
   const [docsNomes, setDocsNomes] = useState<string[]>([])
   const [removidos, setRemovidos] = useState<string[]>([])
+  const [trincas, setTrincas] = useState<Trinca[]>(
+    peca?.referencias?.length
+      ? peca.referencias.map((r) => ({ ...r }))
+      : [{ sku: '', part_number: '', fabricante: '' }],
+  )
+
+  function atualizarTrinca(i: number, campo: keyof Trinca, valor: string) {
+    setTrincas((ts) => ts.map((t, idx) => (idx === i ? { ...t, [campo]: valor } : t)))
+  }
+  function adicionarTrinca() {
+    setTrincas((ts) => [...ts, { sku: '', part_number: '', fabricante: '' }])
+  }
+  function removerTrinca(i: number) {
+    setTrincas((ts) => (ts.length === 1 ? ts : ts.filter((_, idx) => idx !== i)))
+  }
 
   // Fecha o dialog e atualiza a lista quando a ação conclui com sucesso.
   useEffect(() => {
@@ -56,20 +72,56 @@ export function PecaForm({
         </p>
       )}
 
-      <div className="space-y-1.5">
-        <Label htmlFor="sku">SKU</Label>
-        <Input id="sku" name="sku" required defaultValue={peca?.sku} className="font-mono" />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="part_number">Part number (fabricante)</Label>
-        <Input
-          id="part_number"
-          name="part_number"
-          required
-          defaultValue={peca?.part_number}
-          className="font-mono"
-        />
+      <div className="space-y-3">
+        <Label>Referências (fabricante · SKU · part number)</Label>
+        {trincas.map((t, i) => (
+          <div key={i} className="space-y-2 rounded-lg border border-border p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">
+                Trinca {i + 1}
+              </span>
+              {trincas.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removerTrinca(i)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-destructive hover:underline"
+                >
+                  <X className="size-3.5" />
+                  Remover
+                </button>
+              )}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Input
+                name="trinca_fabricante"
+                placeholder="Fabricante"
+                required
+                value={t.fabricante}
+                onChange={(e) => atualizarTrinca(i, 'fabricante', e.target.value)}
+              />
+              <Input
+                name="trinca_sku"
+                placeholder="SKU"
+                required
+                value={t.sku}
+                onChange={(e) => atualizarTrinca(i, 'sku', e.target.value)}
+                className="font-mono"
+              />
+              <Input
+                name="trinca_part_number"
+                placeholder="Part number"
+                required
+                value={t.part_number}
+                onChange={(e) => atualizarTrinca(i, 'part_number', e.target.value)}
+                className="font-mono"
+              />
+            </div>
+          </div>
+        ))}
+        <Button type="button" variant="outline" size="sm" onClick={adicionarTrinca}>
+          <Plus className="size-4" />
+          Adicionar trinca
+        </Button>
       </div>
 
       <div className="space-y-1.5">
