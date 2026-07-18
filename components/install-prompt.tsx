@@ -33,8 +33,17 @@ export function InstallPrompt() {
       e.preventDefault()
       setEvento(e as BeforeInstallPromptEvent)
     }
+    // Instalado pelo menu do navegador (não pelo nosso botão): esconde o banner.
+    function onInstalled() {
+      setEvento(null)
+      setDispensado(true)
+    }
     window.addEventListener('beforeinstallprompt', onBeforeInstall)
-    return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+    window.addEventListener('appinstalled', onInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', onBeforeInstall)
+      window.removeEventListener('appinstalled', onInstalled)
+    }
   }, [])
 
   // Fatos do ambiente: lidos só quando montado (cliente), nunca no SSR.
@@ -45,8 +54,15 @@ export function InstallPrompt() {
     standalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true
+    const nav = window.navigator as unknown as {
+      userAgent: string
+      platform?: string
+      maxTouchPoints?: number
+    }
     isIOS =
-      /iPad|iPhone|iPod/.test(window.navigator.userAgent) &&
+      (/iPad|iPhone|iPod/.test(nav.userAgent) ||
+        // iPadOS 13+ se apresenta como desktop (MacIntel + toque)
+        (nav.platform === 'MacIntel' && (nav.maxTouchPoints ?? 0) > 1)) &&
       !(window as unknown as { MSStream?: unknown }).MSStream
     jaDispensado = localStorage.getItem(CHAVE_DISPENSA) === '1'
   }
