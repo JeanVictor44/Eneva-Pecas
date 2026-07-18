@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { InstallButton } from "./install-button";
 import { LogoutButton } from "./logout-button";
 
 export async function Header() {
@@ -27,6 +28,7 @@ export async function Header() {
               {data.user.email}
             </span>
           )}
+          <InstallButton />
           <LogoutButton />
         </div>
       </div>
