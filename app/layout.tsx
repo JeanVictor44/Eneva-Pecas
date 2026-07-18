@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { InstallPrompt } from "@/components/install-prompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,6 +16,20 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Catálogo de Peças",
   description: "Cadastro e consulta de peças de manutenção",
+  applicationName: "Catálogo de Peças",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Peças",
+  },
+  icons: {
+    apple: "/icons/apple-icon-180.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#fc7101",
 };
 
 export default function RootLayout({
@@ -27,7 +42,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <InstallPrompt />
+      </body>
     </html>
   );
 }
