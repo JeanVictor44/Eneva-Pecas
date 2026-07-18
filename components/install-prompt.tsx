@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Download, Share, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -12,56 +12,60 @@ interface BeforeInstallPromptEvent extends Event {
 
 const CHAVE_DISPENSA = 'pwa-install-dismissed'
 
+// `montado` é true só no cliente (após hidratar) e false no servidor / durante a
+// hidratação. Com useSyncExternalStore evitamos acessar window/navigator no SSR,
+// sem mismatch de hidratação e sem setState síncrono dentro de efeito.
+const subscribe = () => () => {}
+const getSnapshot = () => true
+const getServerSnapshot = () => false
+
+function useMontado(): boolean {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
+
 export function InstallPrompt() {
+  const montado = useMontado()
   const [evento, setEvento] = useState<BeforeInstallPromptEvent | null>(null)
-  const [visivel, setVisivel] = useState(() => {
-    // Já instalado (standalone) → nunca mostra.
-    const standalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true
-    if (standalone) return false
-    if (localStorage.getItem(CHAVE_DISPENSA) === '1') return false
-
-    const ios =
-      /iPad|iPhone|iPod/.test(window.navigator.userAgent) &&
-      !(window as unknown as { MSStream?: unknown }).MSStream
-    return ios // iOS mostra dica imediatamente
-  })
-
-  const isIOS =
-    /iPad|iPhone|iPod/.test(window.navigator.userAgent) &&
-    !(window as unknown as { MSStream?: unknown }).MSStream
+  const [dispensado, setDispensado] = useState(false)
 
   useEffect(() => {
-    // Já instalado ou iOS: não precisa de listener
-    if (
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
-      isIOS
-    ) {
-      return
-    }
-
     function onBeforeInstall(e: Event) {
       e.preventDefault()
       setEvento(e as BeforeInstallPromptEvent)
-      setVisivel(true)
     }
     window.addEventListener('beforeinstallprompt', onBeforeInstall)
     return () => window.removeEventListener('beforeinstallprompt', onBeforeInstall)
-  }, [isIOS])
+  }, [])
+
+  // Fatos do ambiente: lidos só quando montado (cliente), nunca no SSR.
+  let standalone = false
+  let isIOS = false
+  let jaDispensado = false
+  if (montado) {
+    standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true
+    isIOS =
+      /iPad|iPhone|iPod/.test(window.navigator.userAgent) &&
+      !(window as unknown as { MSStream?: unknown }).MSStream
+    jaDispensado = localStorage.getItem(CHAVE_DISPENSA) === '1'
+  }
+
+  // Mostra quando: montado, não instalado, não dispensado, e (iOS ou o navegador
+  // sinalizou que dá pra instalar via beforeinstallprompt).
+  const visivel =
+    montado && !standalone && !dispensado && !jaDispensado && (isIOS || evento !== null)
 
   function dispensar() {
     localStorage.setItem(CHAVE_DISPENSA, '1')
-    setVisivel(false)
+    setDispensado(true)
   }
 
   async function instalar() {
     if (!evento) return
     await evento.prompt()
     await evento.userChoice
-    setEvento(null)
-    setVisivel(false)
+    setEvento(null) // esconde o banner após o diálogo nativo (aceito ou recusado)
   }
 
   if (!visivel) return null
