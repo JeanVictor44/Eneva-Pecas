@@ -21,10 +21,14 @@ function formatarTamanho(bytes: number | null): string {
 
 export function PecaDetalhe({
   peca,
+  podeEditar,
+  podeExcluir,
   onEditar,
   onExcluir,
 }: {
   peca: PecaDetalheData
+  podeEditar: boolean
+  podeExcluir: boolean
   onEditar: () => void
   onExcluir: () => void | Promise<void>
 }) {
@@ -117,44 +121,49 @@ export function PecaDetalhe({
         )}
       </section>
 
-      <DialogFooter className="sm:justify-between">
-        {confirmando ? (
-          <div className="flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center">
-            <span className="self-center text-sm text-muted-foreground">Confirmar exclusão?</span>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setConfirmando(false)}
-                disabled={excluindo}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={confirmarExclusao}
-                disabled={excluindo}
-              >
+      {(podeEditar || podeExcluir) && (
+        <DialogFooter className="sm:justify-between">
+          {podeExcluir &&
+            (confirmando ? (
+              <div className="flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center">
+                <span className="self-center text-sm text-muted-foreground">
+                  Confirmar exclusão?
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setConfirmando(false)}
+                    disabled={excluindo}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={confirmarExclusao}
+                    disabled={excluindo}
+                  >
+                    <Trash2 />
+                    {excluindo ? 'Excluindo…' : 'Sim, excluir'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button type="button" variant="destructive" onClick={() => setConfirmando(true)}>
                 <Trash2 />
-                {excluindo ? 'Excluindo…' : 'Sim, excluir'}
+                Excluir
               </Button>
-            </div>
-          </div>
-        ) : (
-          <Button type="button" variant="destructive" onClick={() => setConfirmando(true)}>
-            <Trash2 />
-            Excluir
-          </Button>
-        )}
+            ))}
 
-        {!confirmando && (
-          <Button type="button" variant="default" size="lg" onClick={onEditar}>
-            <Pencil />
-            Editar
-          </Button>
-        )}
-      </DialogFooter>
+          {podeEditar && !confirmando && (
+            <Button type="button" variant="default" size="lg" onClick={onEditar}>
+              <Pencil />
+              Editar
+            </Button>
+          )}
+        </DialogFooter>
+      )}
     </>
   )
 }

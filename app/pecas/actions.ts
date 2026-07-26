@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { BUCKET_FOTOS, BUCKET_DOCS } from '@/lib/storage'
 import { mapErro } from '@/lib/erros'
+import { exigir } from '@/lib/perfil'
 import { buscarPeca, type PecaDetalheData } from '@/lib/pecas'
 import type { Trinca } from '@/lib/tipos'
 
@@ -137,6 +138,9 @@ export async function criarPeca(
   _prev: EstadoPeca,
   formData: FormData,
 ): Promise<EstadoPeca> {
+  const erroPermissao = await exigir('criar')
+  if (erroPermissao) return { erro: erroPermissao, ok: false }
+
   const descricao = String(formData.get('descricao') ?? '').trim()
   const trincas = trincasDe(formData)
 
@@ -190,6 +194,9 @@ export async function atualizarPeca(
   _prev: EstadoPeca,
   formData: FormData,
 ): Promise<EstadoPeca> {
+  const erroPermissao = await exigir('editar')
+  if (erroPermissao) return { erro: erroPermissao, ok: false }
+
   const descricao = String(formData.get('descricao') ?? '').trim()
   const trincas = trincasDe(formData)
 
@@ -271,6 +278,9 @@ export async function atualizarPeca(
 }
 
 export async function excluirPeca(id: string): Promise<EstadoPeca> {
+  const erroPermissao = await exigir('excluir')
+  if (erroPermissao) return { erro: erroPermissao, ok: false }
+
   const supabase = await createClient()
 
   const { data: anexos } = await supabase

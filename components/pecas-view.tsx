@@ -12,6 +12,7 @@ import {
 } from '@/app/pecas/actions'
 import type { PecaLista, PecaDetalheData } from '@/lib/pecas'
 import type { Categoria } from '@/lib/tipos'
+import type { Permissoes } from '@/lib/permissoes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -39,9 +40,11 @@ function normalizar(texto: string): string {
 export function PecasView({
   pecas,
   categorias,
+  permissoes,
 }: {
   pecas: PecaLista[]
   categorias: Categoria[]
+  permissoes: Permissoes
 }) {
   const router = useRouter()
   const [modo, setModo] = useState<Modo>(null)
@@ -123,10 +126,12 @@ export function PecasView({
                 : `${pecas.length} ${pecas.length === 1 ? 'peça cadastrada' : 'peças cadastradas'}.`}
           </p>
         </div>
-        <Button size="lg" onClick={() => setModo('nova')}>
-          <Plus />
-          Nova peça
-        </Button>
+        {permissoes.criar && (
+          <Button size="lg" onClick={() => setModo('nova')}>
+            <Plus />
+            Nova peça
+          </Button>
+        )}
       </div>
 
       {pecas.length === 0 ? (
@@ -135,15 +140,21 @@ export function PecasView({
             <PackagePlus className="size-6" />
           </div>
           <div className="space-y-1">
-            <p className="font-medium text-foreground">Comece seu catálogo</p>
+            <p className="font-medium text-foreground">
+              {permissoes.criar ? 'Comece seu catálogo' : 'Nenhuma peça cadastrada'}
+            </p>
             <p className="text-sm text-muted-foreground">
-              Cadastre a primeira peça com fotos e documentos.
+              {permissoes.criar
+                ? 'Cadastre a primeira peça com fotos e documentos.'
+                : 'Assim que alguém cadastrar peças, elas aparecem aqui.'}
             </p>
           </div>
-          <Button size="lg" onClick={() => setModo('nova')}>
-            <Plus />
-            Nova peça
-          </Button>
+          {permissoes.criar && (
+            <Button size="lg" onClick={() => setModo('nova')}>
+              <Plus />
+              Nova peça
+            </Button>
+          )}
         </div>
       ) : (
         <>
@@ -234,6 +245,8 @@ export function PecasView({
           {pecaSel ? (
             <PecaDetalhe
               peca={pecaSel}
+              podeEditar={permissoes.editar}
+              podeExcluir={permissoes.excluir}
               onEditar={() => setModo('editar')}
               onExcluir={excluir}
             />
