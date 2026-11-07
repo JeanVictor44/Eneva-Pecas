@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Wrench } from "lucide-react";
+import { Trophy, Users, Wrench } from "lucide-react";
 import { perfilAtual } from "@/lib/perfil";
 import { InstallButton } from "./install-button";
 import { LogoutButton } from "./logout-button";
@@ -22,6 +22,15 @@ export async function Header() {
           </span>
         </Link>
         <div className="flex items-center gap-3">
+          {perfil?.permissoes.visualizar && (
+            <Link
+              href="/ranking"
+              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              <Trophy className="size-4" />
+              <span className="hidden sm:inline">Ranking</span>
+            </Link>
+          )}
           {perfil?.permissoes.gerir_usuarios && (
             <Link
               href="/usuarios"
