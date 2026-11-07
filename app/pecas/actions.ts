@@ -28,6 +28,12 @@ function trincasDe(formData: FormData): Trinca[] {
   }))
 }
 
+// Campos opcionais: vazio vira null para não gravar string em branco.
+function opcional(formData: FormData, campo: string): string | null {
+  const v = String(formData.get(campo) ?? '').trim()
+  return v || null
+}
+
 function trincasValidas(trincas: Trinca[]): boolean {
   return (
     trincas.length > 0 &&
@@ -155,7 +161,12 @@ export async function criarPeca(
 
   const { data: peca, error } = await supabase
     .from('pecas')
-    .insert({ descricao, categoria_id: cat.id })
+    .insert({
+      descricao,
+      categoria_id: cat.id,
+      codigo_posicao: opcional(formData, 'codigo_posicao'),
+      local: opcional(formData, 'local'),
+    })
     .select('id')
     .single()
   if (error) return { erro: mapErro(error), ok: false }
@@ -211,7 +222,12 @@ export async function atualizarPeca(
 
   const { error: erroUpdate } = await supabase
     .from('pecas')
-    .update({ descricao, categoria_id: cat.id })
+    .update({
+      descricao,
+      categoria_id: cat.id,
+      codigo_posicao: opcional(formData, 'codigo_posicao'),
+      local: opcional(formData, 'local'),
+    })
     .eq('id', id)
   if (erroUpdate) return { erro: mapErro(erroUpdate), ok: false }
 

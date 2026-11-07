@@ -1,4 +1,4 @@
-import { ImageIcon, FileText, ImageOff } from 'lucide-react'
+import { ImageIcon, FileText, ImageOff, MapPin } from 'lucide-react'
 import type { PecaLista } from '@/lib/pecas'
 import { Badge } from '@/components/ui/badge'
 
@@ -52,6 +52,16 @@ export function PecaCard({
           ))}
         </div>
         <p className="mt-1 line-clamp-2 text-sm text-foreground/80">{peca.descricao}</p>
+        {(peca.codigoPosicao || peca.local) && (
+          <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="size-3.5 shrink-0" />
+            {peca.codigoPosicao && (
+              <span className="truncate font-mono text-foreground/70">{peca.codigoPosicao}</span>
+            )}
+            {peca.codigoPosicao && peca.local && <span aria-hidden>·</span>}
+            {peca.local && <span className="truncate">{peca.local}</span>}
+          </p>
+        )}
 
         <div className="mt-auto flex items-center gap-4 pt-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">

@@ -85,6 +85,27 @@ export function PecaDetalhe({
 
       <p className="text-sm text-foreground/80">{peca.descricao}</p>
 
+      {(peca.codigoPosicao || peca.local) && (
+        <div className="flex flex-wrap gap-x-8 gap-y-2">
+          {peca.codigoPosicao && (
+            <div className="space-y-0.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Código de posição
+              </p>
+              <p className="font-mono text-sm text-foreground">{peca.codigoPosicao}</p>
+            </div>
+          )}
+          {peca.local && (
+            <div className="space-y-0.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Local
+              </p>
+              <p className="text-sm text-foreground">{peca.local}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       <section className="space-y-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Fotos

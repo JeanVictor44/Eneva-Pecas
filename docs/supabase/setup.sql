@@ -379,3 +379,10 @@ create policy "docs_update_auth" on storage.objects for update to authenticated
 drop policy if exists "docs_delete_auth" on storage.objects;
 create policy "docs_delete_auth" on storage.objects for delete to authenticated
   using (bucket_id = 'pecas-documentos' and (public.pode('editar') or public.pode('excluir')));
+
+-- ============================================================
+-- MIGRAÇÃO — Código de posição e Local (idempotente; seguro rodar de novo).
+-- Ambos opcionais: texto livre, null quando não informado.
+-- ============================================================
+alter table public.pecas add column if not exists codigo_posicao text;
+alter table public.pecas add column if not exists local text;

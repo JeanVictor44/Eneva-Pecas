@@ -74,6 +74,8 @@ export function PecasView({
       if (!q) return true
       return (
         normalizar(p.descricao).includes(q) ||
+        (p.codigoPosicao ? normalizar(p.codigoPosicao).includes(q) : false) ||
+        (p.local ? normalizar(p.local).includes(q) : false) ||
         (p.categoria ? normalizar(p.categoria.nome).includes(q) : false) ||
         p.referencias.some(
           (r) =>
@@ -194,7 +196,7 @@ export function PecasView({
             <Input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por SKU, part number, fabricante ou descrição…"
+              placeholder="Buscar por SKU, part number, fabricante, descrição, posição ou local…"
               aria-label="Buscar peças"
               className="pl-9"
             />

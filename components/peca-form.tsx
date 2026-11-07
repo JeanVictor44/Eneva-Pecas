@@ -148,6 +148,27 @@ export function PecaForm({
         <Textarea id="descricao" name="descricao" required rows={3} defaultValue={peca?.descricao} />
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="codigo_posicao">
+            Código de posição <span className="font-normal text-muted-foreground">(opcional)</span>
+          </Label>
+          <Input
+            id="codigo_posicao"
+            name="codigo_posicao"
+            defaultValue={peca?.codigoPosicao ?? ''}
+            autoComplete="off"
+            className="font-mono"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="local">
+            Local <span className="font-normal text-muted-foreground">(opcional)</span>
+          </Label>
+          <Input id="local" name="local" defaultValue={peca?.local ?? ''} autoComplete="off" />
+        </div>
+      </div>
+
       {fotosExistentes.length > 0 && (
         <div className="space-y-2">
           <Label>Fotos atuais</Label>
